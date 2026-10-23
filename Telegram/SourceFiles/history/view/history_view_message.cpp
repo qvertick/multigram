@@ -1788,13 +1788,19 @@ int Message::marginBottom() const {
 }
 
 void Message::draw(Painter &p, const PaintContext &context) const {
-	auto g = countGeometry();
-	if (g.width() < 1) {
-		return;
-	}
+    auto g = countGeometry();
+    if (g.width() < 1) {
+        return;
+    }
 
-	const auto item = data();
-	const auto media = this->media();
+    const auto item = data();
+    const auto media = this->media();
+
+    // --- Multigram: объявляем флаг здесь, чтобы он был доступен во всей функции ---
+    const auto isDeleted = item->isDeletedLocally();
+    if (isDeleted) {
+        p.setOpacity(0.7); // Делаем сообщение полупрозрачным
+    }
 
 	const auto gestureShift = context.gestureHorizontal.visualTranslationFor(
 		item->id.bare);
@@ -2370,6 +2376,10 @@ void Message::draw(Painter &p, const PaintContext &context) const {
 	} else if (!context.skipSelectionCheck) {
 		_selectionRoundCheckbox = nullptr;
 	}
+
+		if (isDeleted) {
+				p.setOpacity(1.0);
+			}
 }
 
 void Message::paintCommentsButton(
@@ -6053,6 +6063,11 @@ void Message::drawRightAction(
 		int top,
 		int outerWidth) const {
 	ensureRightAction();
+// --- Multigram: Отрисовка значка мусорки для удаленного сообщения ---
+    if (data()->isDeletedLocally()) {
+        static const auto icon = st::historyPinIcon; // Временный стилизованный маркер из ресурсов
+        icon.paint(p, left, top, outerwidth);
+    }
 
 	const auto size = rightActionSize();
 	const auto st = context.st;

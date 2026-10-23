@@ -181,6 +181,14 @@ public:
 		not_null<GameData*> game);
 	~HistoryItem();
 
+	// Multigarm 
+    [[nodiscard]] bool isDeletedLocally() const {
+        return _isDeletedLocally;
+    }
+    void markDeletedLocally() {
+        _isDeletedLocally = true;
+    }
+
 	struct Destroyer {
 		void operator()(HistoryItem *value);
 	};
@@ -842,6 +850,7 @@ private:
 	friend class HistoryView::Service;
 	friend class HistoryView::ServiceMessagePainter;
 
+	bool _isDeletedLocally = false;
 };
 
 constexpr auto kSize = int(sizeof(HistoryItem));

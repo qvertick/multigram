@@ -3341,15 +3341,29 @@ void Session::processMessagesDeleted(
 	auto toDestroy = std::vector<not_null<HistoryItem*>>();
 	auto historiesToCheck = base::flat_set<not_null<History*>>();
 	for (const auto &messageId : data) {
-		const auto i = list ? list->find(messageId.v) : Messages::iterator();
-		if (list && i != list->end()) {
-			const auto history = i->second->history();
-			toDestroy.push_back(i->second);
-			historiesToCheck.emplace(history);
-		} else if (affected) {
-			affected->unknownMessageDeleted(messageId.v);
-		}
-	}
+        const auto i = list ? list->find(messageId.v) : Messages::iterator();
+        if (list && i != list->end()) {
+            const auto item = i->second;
+            
+            // --- Multigarm: перехватываем удаление ---
+            item->markDeletedLocally(); // Включаем наш флаг
+            
+            const auto history = item->history();
+            if (history) {
+                historiesToCheck.emplace(history);
+                // Позже здесь добавим метод регистрации в лимит 200 сообщений
+            }
+            
+            // Уведомляем интерфейс, что сообщение изменилось (нужна перерисовка под иконку мусорки)
+            session().changes().entryUpdated(item, Data::EntryUpdate::Flag::Repaint);
+            
+            // ВНИМАНИЕ: Мы умышленно НЕ добавляем item в toDestroy, 
+            // поэтому официальный код удаления его не сотрет!
+        } else if (affected) {
+            affected->unknownMessageDeleted(messageId.v);
+        }
+    }
+	
 	if (!toDestroy.empty()) {
 		notifyItemsAboutToBeDestroyed(toDestroy);
 		for (const auto &item : toDestroy) {
